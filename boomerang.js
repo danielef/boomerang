@@ -347,7 +347,7 @@ BOOMR_check_doc_domain();
 		// Beacon request method, either GET, POST or AUTO. AUTO will check the
 		// request size then use GET if the request URL is less than MAX_GET_LENGTH
 		// chars. Otherwise, it will fall back to a POST request.
-		beacon_type: "AUTO",
+		beacon_type: "PUT",
 
 		// Beacon authorization key value. Most systems will use the 'Authentication'
 		// keyword, but some some services use keys like 'X-Auth-Token' or other
@@ -3274,7 +3274,7 @@ BOOMR_check_doc_domain();
 			// Try to send an IMG beacon if possible (which is the most compatible),
 			// otherwise send an XHR beacon if the  URL length is longer than 2,000 bytes.
 			//
-			if (impl.beacon_type === "POST" || url.length > BOOMR.constants.MAX_GET_LENGTH) {
+			if (impl.beacon_type === "PUT" || url.length > BOOMR.constants.MAX_GET_LENGTH) {
 				// switch to a XHR beacon if the the user has specified a POST OR GET length is too long
 				useImg = false;
 			}
@@ -3283,14 +3283,9 @@ BOOMR_check_doc_domain();
 			// Try the sendBeacon API first
 			//
 			if (w && w.navigator &&
-			    typeof w.navigator.sendBeacon === "function" &&
-			    typeof w.Blob === "function") {
-				// note we're using sendBeacon with &sb=1
-				var blobData = new w.Blob([paramsJoined + "&sb=1"], {
-					type: "application/x-www-form-urlencoded"
-				});
+			    typeof w.navigator.sendBeacon === "function") {
 
-				if (w.navigator.sendBeacon(impl.beacon_url, blobData)) {
+				if (w.navigator.sendBeacon(impl.beacon_url, JSON.stringify(data))) {
 					return true;
 				}
 
@@ -3327,12 +3322,12 @@ BOOMR_check_doc_domain();
 				// Send a form-encoded XHR POST beacon
 				xhr = new (BOOMR.window.orig_XMLHttpRequest || BOOMR.orig_XMLHttpRequest || BOOMR.window.XMLHttpRequest)();
 				try {
-					this.sendXhrPostBeacon(xhr, paramsJoined);
+					this.sendXhrPostBeacon(xhr, data);
 				}
 				catch (e) {
 					// if we had an exception with the window XHR object, try our IFRAME XHR
 					xhr = new BOOMR.boomerang_frame.XMLHttpRequest();
-					this.sendXhrPostBeacon(xhr, paramsJoined);
+					this.sendXhrPostBeacon(xhr, data);
 				}
 			}
 
@@ -3359,9 +3354,9 @@ BOOMR_check_doc_domain();
 		 * @memberof BOOMR
 		 */
 		sendXhrPostBeacon: function(xhr, paramsJoined) {
-			xhr.open("POST", impl.beacon_url);
+			xhr.open("PUT", impl.beacon_url);
 
-			xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xhr.setRequestHeader("Content-type", "application/json");
 
 			if (typeof impl.beacon_auth_token !== "undefined") {
 				if (typeof impl.beacon_auth_key === "undefined") {
@@ -3371,7 +3366,7 @@ BOOMR_check_doc_domain();
 				xhr.setRequestHeader(impl.beacon_auth_key, impl.beacon_auth_token);
 			}
 
-			xhr.send(paramsJoined);
+			xhr.send(JSON.stringify(paramsJoined));
 		},
 
 		/**
